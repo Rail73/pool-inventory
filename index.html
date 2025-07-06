@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pool Parts Inventory - Hybrid System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="max-w-6xl mx-auto p-6">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">🏊‍♂️ Pool Parts Inventory</h1>
+                <div class="flex gap-2">
+                    <button onclick="showSettings()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                        ⚙️ Settings
+                    </button>
+                    <button onclick="loadParts()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                        🔄 Refresh
+                    </button>
+                    <button onclick="showAddForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        ➕ Add Part
+                    </button>
+                </div>
+            </div>
+
+            <!-- Connection Status -->
+            <div class="mb-4">
+                <span id="status" class="inline-flex items-center gap-2">
+                    <span id="statusDot" class="w-3 h-3 rounded-full bg-red-500"></span>
+                    <span id="statusText">Local Mode</span>
+                </span>
+            </div>
+
+            <!-- API Settings Panel -->
+            <div id="settingsPanel" class="hidden bg-yellow-50 p-6 rounded-lg mb-6 border border-yellow-200">
+                <h2 class="text-xl font-semibold mb-4">Google Sheets Integration</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Google Apps Script URL:</label>
+                        <input 
+                            type="text" 
+                            id="apiUrl" 
+                            placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <p><strong>Setup Instructions:</strong></p>
+                        <p>1. Create Google Sheets with columns: id, name, currentStock, minStock, price, supplier</p>
+                        <p>2. Add Google Apps Script code (see documentation)</p>
+                        <p>3. Deploy as web application</p>
+                        <p>4. Copy the URL here</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="saveApiUrl()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            Save
+                        </button>
+                        <button onclick="hideSettings()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <div id="totalCount" class="text-2xl font-bold text-blue-600">0</div>
+                    <div class="text-sm text-gray-600">Total Items</div>
+                </div>
+                <div class="bg-red-50 p-4 rounded-lg">
+                    <div id="criticalCount" class="text-2xl font-bold text-red-600">0</div>
+                    <div class="text-sm text-gray-600">Critical Stock</div>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <div id="totalValue" class="text-2xl font-bold text-green-600">$0</div>
+                    <div class="text-sm text-gray-600">Total Value</div>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="mb-6">
+                <input 
+                    type="text" 
+                    id="searchInput"
+                    placeholder="🔍 Search by name or supplier..." 
+                    onkeyup="filterParts()"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+            </div>
+
+            <!-- Add Form -->
+            <div id="addForm" class="hidden bg-gray-50 p-6 rounded-lg mb-6">
+                <h2 class="text-xl font-semibold mb-4">Add New Part</h2>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <input type="text" id="partName" placeholder="Part Name" class="px-3 py-2 border border-gray-300 rounded-lg">
+                    <input type="number" id="partStock" placeholder="Current Stock" class="px-3 py-2 border border-gray-300 rounded-lg">
+                    <input type="number" id="partMinStock" placeholder="Min Stock" class="px-3 py-2 border border-gray-300 rounded-lg">
+                    <input type="number" id="partPrice" placeholder="Price ($)" class="px-3 py-2 border border-gray-300 rounded-lg">
+                    <input type="text" id="partSupplier" placeholder="Supplier" class="px-3 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <div class="flex gap-2 mt-4">
+                    <button onclick="addPart()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Add Part</button>
+                    <button onclick="hideAddForm()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Parts Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse bg-white">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="border-b p-3 text-left font-semibold">Part Name</th>
+                            <th class="border-b p-3 text-center font-semibold">Stock</th>
+                            <th class="border-b p-3 text-center font-semibold">Min Stock</th>
+                            <th class="border-b p-3 text-center font-semibold">Status</th>
+                            <th class="border-b p-3 text-right font-semibold">Price</th>
+                            <th class="border-b p-3 text-left font-semibold">Supplier</th>
+                            <th class="border-b p-3 text-center font-semibold">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="partsTable">
+                        <!-- Data will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="noResults" class="text-center py-8 text-gray-500 hidden">
+                No parts found
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let parts = [];
+        let allParts = [];
+        let isOnline = false;
+        
+        // Load data on startup
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedApiUrl = localStorage.getItem('googleApiUrl');
+            if (savedApiUrl) {
+                document.getElementById('apiUrl').value = savedApiUrl;
+                loadParts();
+            } else {
+                loadLocalParts();
+            }
+        });
+
+        function loadParts() {
+            const apiUrl = localStorage.getItem('googleApiUrl');
+            if (!apiUrl) {
+                loadLocalParts();
+                return;
+            }
+
+            console.log('Loading from:', apiUrl);
+            
+            fetch(apiUrl + '?action=getParts')
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Response data:', data);
+                    if (data.success) {
+                        parts = data.data;
+                        allParts = [...parts];
+                        isOnline = true;
+                        updateStatus();
+                        renderParts();
+                        updateStats();
+                        localStorage.setItem('poolPartsBackup', JSON.stringify(parts));
+                        alert('✅ Successfully loaded from Google Sheets!');
+                    } else {
+                        throw new Error(data.error || 'API Error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Loading error:', error);
+                    alert('❌ Error loading from Google Sheets: ' + error.message);
+                    isOnline = false;
+                    updateStatus();
+                    loadLocalParts();
+                });
+        }
+
+        function loadLocalParts() {
+            const localData = localStorage.getItem('poolPartsBackup') || localStorage.getItem('poolPartsLocal');
+            if (localData) {
+                parts = JSON.parse(localData);
+            } else {
+                // Default sample data
+                parts = [
+                    { id: 1, name: "Sand Filter 24\"", currentStock: 3, minStock: 2, price: 450, supplier: "AquaTech" },
+                    { id: 2, name: "Skimmer Cartridge", currentStock: 1, minStock: 5, price: 25, supplier: "PoolService" },
+                    { id: 3, name: "Circulation Pump 1.5HP", currentStock: 2, minStock: 1, price: 890, supplier: "PoolTech" },
+                    { id: 4, name: "Pool Brush", currentStock: 0, minStock: 3, price: 35, supplier: "AquaMaster" },
+                    { id: 5, name: "pH Test Kit", currentStock: 4, minStock: 2, price: 15, supplier: "ChemPool" }
+                ];
+            }
+            allParts = [...parts];
+            renderParts();
+            updateStats();
+        }
+
+        function updateStatus() {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            
+            if (isOnline) {
+                dot.className = 'w-3 h-3 rounded-full bg-green-500';
+                text.textContent = 'Online (Google Sheets)';
+            } else {
+                dot.className = 'w-3 h-3 rounded-full bg-red-500';
+                text.textContent = 'Local Mode';
+            }
+        }
+
+        function renderParts() {
+            const tbody = document.getElementById('partsTable');
+            tbody.innerHTML = '';
+
+            parts.forEach(part => {
+                const status = getStockStatus(part);
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                
+                row.innerHTML = `
+                    <td class="border-b p-3 font-medium">${part.name}</td>
+                    <td class="border-b p-3 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            ${status === 'critical' ? '⚠️' : status === 'warning' ? '⚡' : ''}
+                            ${part.currentStock}
+                        </div>
+                    </td>
+                    <td class="border-b p-3 text-center">${part.minStock}</td>
+                    <td class="border-b p-3 text-center">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(status)}">
+                            ${getStatusText(status)}
+                        </span>
+                    </td>
+                    <td class="border-b p-3 text-right">$${part.price.toLocaleString()}</td>
+                    <td class="border-b p-3">${part.supplier}</td>
+                    <td class="border-b p-3 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="adjustStock(${part.id}, 1)" class="bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600">+1</button>
+                            <button onclick="adjustStock(${part.id}, -1)" class="bg-red-500 text-white px-2 py-1 rounded text-sm hover:bg-red-600">-1</button>
+                            <button onclick="deletePart(${part.id})" class="bg-gray-500 text-white px-2 py-1 rounded text-sm hover:bg-gray-600 ml-1">🗑️</button>
+                        </div>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('noResults').classList.toggle('hidden', parts.length > 0);
+        }
+
+        function getStockStatus(part) {
+            if (part.currentStock === 0 || part.currentStock <= part.minStock) return 'critical';
+            if (part.currentStock <= part.minStock * 1.5) return 'warning';
+            return 'normal';
+        }
+
+        function getStatusClass(status) {
+            if (status === 'critical') return 'bg-red-100 text-red-800';
+            if (status === 'warning') return 'bg-yellow-100 text-yellow-800';
+            return 'bg-green-100 text-green-800';
+        }
+
+        function getStatusText(status) {
+            if (status === 'critical') return 'Critical';
+            if (status === 'warning') return 'Low Stock';
+            return 'Good';
+        }
+
+        function updateStats() {
+            const total = allParts.length;
+            const critical = allParts.filter(part => getStockStatus(part) === 'critical').length;
+            const totalValue = allParts.reduce((sum, part) => sum + (part.currentStock * part.price), 0);
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('criticalCount').textContent = critical;
+            document.getElementById('totalValue').textContent = '$' + totalValue.toLocaleString();
+        }
+
+        function filterParts() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            parts = allParts.filter(part => 
+                part.name.toLowerCase().includes(searchTerm) ||
+                part.supplier.toLowerCase().includes(searchTerm)
+            );
+            renderParts();
+        }
+
+        function adjustStock(id, change) {
+            const apiUrl = localStorage.getItem('googleApiUrl');
+            
+            if (apiUrl && isOnline) {
+                // Try to update in Google Sheets
+                fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'updateStock', id: id, change: change })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Update stock response:', data);
+                    if (data.success) {
+                        console.log('✅ Stock updated in Google Sheets');
+                        loadParts(); // Reload to get updated data
+                    } else {
+                        throw new Error(data.error || 'Failed to update stock');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating stock:', error);
+                    alert('❌ Error updating Google Sheets. Updating locally.');
+                    updateStockLocally(id, change);
+                });
+            } else {
+                // Update locally
+                updateStockLocally(id, change);
+            }
+        }
+
+        function updateStockLocally(id, change) {
+            const partIndex = allParts.findIndex(part => part.id == id);
+            if (partIndex !== -1) {
+                allParts[partIndex].currentStock = Math.max(0, allParts[partIndex].currentStock + change);
+                localStorage.setItem('poolPartsLocal', JSON.stringify(allParts));
+                filterParts();
+                updateStats();
+            }
+        }
+
+        function deletePart(id) {
+            if (confirm('Delete this part?')) {
+                allParts = allParts.filter(part => part.id !== id);
+                localStorage.setItem('poolPartsLocal', JSON.stringify(allParts));
+                filterParts();
+                updateStats();
+            }
+        }
+
+        function addPart() {
+            const name = document.getElementById('partName').value.trim();
+            if (!name) {
+                alert('Please enter a part name');
+                return;
+            }
+
+            const newPart = {
+                name: name,
+                currentStock: parseInt(document.getElementById('partStock').value) || 0,
+                minStock: parseInt(document.getElementById('partMinStock').value) || 0,
+                price: parseInt(document.getElementById('partPrice').value) || 0,
+                supplier: document.getElementById('partSupplier').value.trim() || 'Unknown'
+            };
+
+            const apiUrl = localStorage.getItem('googleApiUrl');
+            
+            if (apiUrl && isOnline) {
+                // Try to save to Google Sheets
+                fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'addPart', ...newPart })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Add part response:', data);
+                    if (data.success) {
+                        alert('✅ Part added to Google Sheets!');
+                        loadParts(); // Reload to get updated data
+                    } else {
+                        throw new Error(data.error || 'Failed to add part');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error adding part:', error);
+                    alert('❌ Error adding to Google Sheets: ' + error.message + '\nSaving locally instead.');
+                    addPartLocally(newPart);
+                });
+            } else {
+                // Save locally
+                addPartLocally(newPart);
+            }
+        }
+
+        function addPartLocally(newPart) {
+            newPart.id = Date.now();
+            allParts.push(newPart);
+            localStorage.setItem('poolPartsLocal', JSON.stringify(allParts));
+            
+            // Clear form
+            document.getElementById('partName').value = '';
+            document.getElementById('partStock').value = '';
+            document.getElementById('partMinStock').value = '';
+            document.getElementById('partPrice').value = '';
+            document.getElementById('partSupplier').value = '';
+            
+            hideAddForm();
+            filterParts();
+            updateStats();
+            alert('Part added locally!');
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(allParts, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            const exportFileDefaultName = `pool_parts_${new Date().toISOString().split('T')[0]}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        }
+
+        function showSettings() {
+            document.getElementById('settingsPanel').classList.remove('hidden');
+        }
+
+        function hideSettings() {
+            document.getElementById('settingsPanel').classList.add('hidden');
+        }
+
+        function saveApiUrl() {
+            const url = document.getElementById('apiUrl').value.trim();
+            localStorage.setItem('googleApiUrl', url);
+            hideSettings();
+            if (url) {
+                loadParts();
+            }
+            alert('Settings saved!');
+        }
+
+        function showAddForm() {
+            document.getElementById('addForm').classList.remove('hidden');
+        }
+
+        function hideAddForm() {
+            document.getElementById('addForm').classList.add('hidden');
+        }
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                showAddForm();
+            }
+            if (e.key === 'Escape') {
+                hideAddForm();
+                hideSettings();
+            }
+        });
+    </script>
+</body>
+</html>
