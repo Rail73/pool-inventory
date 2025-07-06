@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pool Parts Inventory System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="max-w-7xl mx-auto p-4">
+        <!-- System Header -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-2">
+                        🏊‍♂️ Pool Parts Inventory System
+                    </h1>
+                    <p class="text-gray-600 mt-1">Professional inventory management for pool service companies</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="showSettings()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center gap-2">
+                        ⚙️ Setup
+                    </button>
+                    <button onclick="showKitsPanel()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2" disabled id="kitsBtn">
+                        📦 Kits
+                    </button>
+                    <button onclick="exportData()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2" disabled id="exportBtn">
+                        📊 Export
+                    </button>
+                    <button onclick="loadParts()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2" disabled id="refreshBtn">
+                        🔄 Refresh
+                    </button>
+                    <button onclick="showAddForm()" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center gap-2" disabled id="addBtn">
+                        ➕ Add Part
+                    </button>
+                </div>
+            </div>
+
+            <!-- Connection Status -->
+            <div class="mt-4">
+                <div id="connectionStatus" class="p-4 rounded-lg bg-red-50 border border-red-200">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                        <span class="font-medium text-red-800">Not Connected to Google Sheets</span>
+                    </div>
+                    <p class="text-red-600 text-sm mt-1">Please configure Google Apps Script to start using the system</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Setup Instructions Panel -->
+        <div id="setupPanel" class="bg-blue-50 p-6 rounded-lg mb-6 border border-blue-200">
+            <h2 class="text-2xl font-semibold mb-4 text-blue-800">🚀 Quick Setup Guide</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h3 class="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                            📋 Step 1: Create Google Sheets
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-3">Create a new Google Sheets with these exact headers in row 1:</p>
+                        <div class="bg-gray-100 p-3 rounded font-mono text-sm overflow-x-auto">
+                            <table class="w-full text-xs">
+                                <tr class="border-b">
+                                    <td class="px-2 py-1 border-r">A</td>
+                                    <td class="px-2 py-1 border-r">B</td>
+                                    <td class="px-2 py-1 border-r">C</td>
+                                    <td class="px-2 py-1 border-r">D</td>
+                                    <td class="px-2 py-1 border-r">E</td>
+                                    <td class="px-2 py-1">F</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-2 py-1 border-r">id</td>
+                                    <td class="px-2 py-1 border-r">name</td>
+                                    <td class="px-2 py-1 border-r">currentStock</td>
+                                    <td class="px-2 py-1 border-r">minStock</td>
+                                    <td class="px-2 py-1 border-r">price</td>
+                                    <td class="px-2 py-1">supplier</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Add sample data in row 2:</p>
+                        <div class="bg-gray-100 p-2 rounded font-mono text-xs">
+                            1 | Sand Filter 24" | 3 | 2 | 450 | AquaTech
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h3 class="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                            🔧 Step 2: Add Apps Script
+                        </h3>
+                        <ol class="text-sm text-gray-600 list-decimal list-inside space-y-1">
+                            <li>In Google Sheets: <strong>Extensions → Apps Script</strong></li>
+                            <li>Delete default code, paste code below</li>
+                            <li>Save project (Ctrl+S)</li>
+                        </ol>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h3 class="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                            🌐 Step 3: Deploy Web App
+                        </h3>
+                        <ol class="text-sm text-gray-600 list-decimal list-inside space-y-1">
+                            <li>Click <strong>Deploy → New deployment</strong></li>
+                            <li>Type: <strong>Web application</strong></li>
+                            <li>Execute as: <strong>Me</strong></li>
+                            <li>Access: <strong>Anyone</strong> ⭐ <em>Critical!</em></li>
+                            <li>Authorize permissions when prompted</li>
+                            <li>Copy the Web app URL</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h3 class="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                            🔗 Step 4: Connect System
+                        </h3>
+                        <div class="space-y-3">
+                            <input 
+                                type="text" 
+                                id="apiUrl" 
+                                placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            >
+                            <button onclick="saveApiUrl()" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                                🔌 Connect to Google Sheets
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <h3 class="font-semibold text-green-800 mb-2">✅ Features Included:</h3>
+                        <ul class="text-sm text-green-700 space-y-1">
+                            <li>• Real-time inventory tracking</li>
+                            <li>• Parts kits management</li>
+                            <li>• Critical stock alerts</li>
+                            <li>• Search and filtering</li>
+                            <li>• Data export functionality</li>
+                            <li>• Mobile-responsive design</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                        <h3 class="font-semibold text-yellow-800 mb-2">⚠️ Important Notes:</h3>
+                        <ul class="text-sm text-yellow-700 space-y-1">
+                            <li>• Keep your Google Apps Script URL secure</li>
+                            <li>• Regular backups recommended</li>
+                            <li>• Internet connection required for sync</li>
+                            <li>• Compatible with all modern browsers</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Apps Script Code -->
+            <div class="mt-6">
+                <details class="bg-white p-4 rounded-lg border">
+                    <summary class="font-semibold text-gray-800 cursor-pointer flex items-center gap-2">
+                        📄 Google Apps Script Code (click to expand)
+                    </summary>
+                    <div class="mt-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm text-gray-600">Copy this entire code to your Apps Script editor:</span>
+                            <button onclick="copyToClipboard('appsScriptCode')" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">
+                                📋 Copy Code
+                            </button>
+                        </div>
+                        <pre id="appsScriptCode" class="bg-gray-900 text-green-400 p-4 rounded text-sm overflow-x-auto max-h-96"><code>function doGet(e) {
+  if (!e || !e.parameter) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, error: 'No parameters provided'
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  const action = e.parameter.action;
+  let result;
+  
+  try {
+    switch(action) {
+      case 'getParts':
+        result = getParts();
+        break;
+      case 'test':
+        result = { success: true, message: 'Connection successful!', timestamp: new Date().toISOString() };
+        break;
+      default:
+        result = { success: false, error: 'Unknown action: ' + action };
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, error: 'doGet error: ' + error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  if (!e || !e.postData || !e.postData.contents) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, error: 'No POST data provided'
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  try {
+    const data = JSON.parse(e.postData.contents);
+    let result;
+    
+    switch(data.action) {
+      case 'addPart':
+        result = addPart(data);
+        break;
+      case 'updateStock':
+        result = updateStock(data);
+        break;
+      case 'deletePart':
+        result = deletePart(data);
+        break;
+      default:
+        result = { success: false, error: 'Unknown POST action: ' + data.action };
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, error: 'doPost error: ' + error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function getParts() {
+  try {
+    const sheet = SpreadsheetApp.getActiveSheet();
+    const data = sheet.getDataRange().getValues();
+    
+    if (!data || data.length <= 1) {
+      return { success: true, data: [], message: 'No parts found' };
+    }
+    
+    const parts = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[0] && row[1]) {
+        parts.push({
+          id: row[0],
+          name: row[1],
+          currentStock: parseInt(row[2]) || 0,
+          minStock: parseInt(row[3]) || 0,
+          price: parseFloat(row[4]) || 0,
+          supplier: row[5] || ''
+        });
+      }
+    }
+    
+    return { success: true, data: parts, message: `Found ${parts.length} parts` };
+  } catch (error) {
+    return { success: false, error: 'getParts error: ' + error.toString() };
+  }
+}
+
+function addPart(data) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSheet();
+    const lastRow = sheet.getLastRow();
+    const newId = lastRow;
+    
+    sheet.appendRow([
+      newId,
+      data.name || '',
+      parseInt(data.currentStock) || 0,
+      parseInt(data.minStock) || 0,
+      parseFloat(data.price) || 0,
+      data.supplier || ''
+    ]);
+    
+    return { success: true, message: 'Part added successfully', id: newId };
+  } catch (error) {
+    return { success: false, error: 'addPart error: ' + error.toString() };
+  }
+}
+
+function updateStock(data) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSheet();
+    const values = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] == data.id) {
+        const currentStock = parseInt(values[i][2]) || 0;
+        const newStock = Math.max(0, currentStock + parseInt(data.change));
+        sheet.getRange(i + 1, 3).setValue(newStock);
+        return { 
+          success: true, 
+          message: `Stock updated: ${currentStock} → ${newStock}`,
+          oldStock: currentStock,
+          newStock: newStock
+        };
+      }
+    }
+    
+    return { success: false, error: 'Part with ID ' + data.id + ' not found' };
+  } catch (error) {
+    return { success: false, error: 'updateStock error: ' + error.toString() };
+  }
+}
+
+function deletePart(data) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSheet();
+    const values = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] == data.id) {
+        sheet.deleteRow(i + 1);
+        return { success: true, message: 'Part deleted successfully' };
+      }
+    }
+    
+    return { success: false, error: 'Part with ID ' + data.id + ' not found' };
+  } catch (error) {
+    return { success: false, error: 'deletePart error: ' + error.toString() };
+  }
+}</code></pre>
+                    </div>
+                </details>
+            </div>
+        </div>
+
+        <!-- Statistics Dashboard -->
+        <div id="statsPanel" class="hidden grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-blue-50 p-6 rounded-lg shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div id="totalCount" class="text-3xl font-bold text-blue-600">0</div>
+                        <div class="text-sm text-blue-800 font-medium">Total Parts</div>
+                    </div>
+                    <div class="text-blue-500">📦</div>
+                </div>
+            </div>
+            <div class="bg-red-50 p-6 rounded-lg shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div id="criticalCount" class="text-3xl font-bold text-red-600">0</div>
+                        <div class="text-sm text-red-800 font-medium">Critical Stock</div>
+                    </div>
+                    <div class="text-red-500">⚠️</div>
+                </div>
+            </div>
+            <div class="bg-green-50 p-6 rounded-lg shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div id="totalValue" class="text-3xl font-bold text-green-600">$0</div>
+                        <div class="text-sm text-green-800 font-medium">Total Value</div>
+                    </div>
+                    <div class="text-green-500">💰</div>
+                </div>
+            </div>
+            <div class="bg-purple-50 p-6 rounded-lg shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div id="kitsCount" class="text-3xl font-bold text-purple-600">0</div>
+                        <div class="text-sm text-purple-800 font-medium">Parts Kits</div>
+                    </div>
+                    <div class="text-purple-500">🛠️</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filters -->
+        <div id="searchPanel" class="hidden bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-gray-400">🔍</span>
+                        <input 
+                            type="text" 
+                            id="searchInput"
+                            placeholder="Search by part name or supplier..." 
+                            onkeyup="filterParts()"
+                            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                    </div>
+                </div>
+                <select id="categoryFilter" onchange="filterParts()" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="all">All Categories</option>
+                    <option value="Filtration">Filtration</option>
+                    <option value="Cleaning">Cleaning</option>
+                    <option value="Heating">Heating</option>
+                    <option value="Chemical">Chemical</option>
+                    <option value="Lighting">Lighting</option>
+                    <option value="Other">Other</option>
+                </select>
+                <select id="statusFilter" onchange="filterParts()" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="all">All Status</option>
+                    <option value="critical">Critical Stock</option>
+                    <option value="warning">Low Stock</option>
+                    <option value="normal">Normal Stock</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Kits Management Panel -->
+        <div id="kitsPanel" class="hidden bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-gray-800">📦 Parts Kits Management</h2>
+                <div class="flex gap-2">
+                    <button onclick="showCreateKitForm()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+                        ➕ Create Kit
+                    </button>
+                    <button onclick="hideKitsPanel()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
+                        ✕ Close
+                    </button>
+                </div>
+            </div>
+            
+            <div id="kitsList" class="space-y-4 mb-6">
+                <!-- Kits will be populated here -->
+            </div>
+            
+            <!-- Create Kit Form -->
+            <div id="createKitForm" class="hidden bg-gray-50 p-6 rounded-lg border">
+                <h3 class="text-lg font-semibold mb-4">Create New Parts Kit</h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Kit Name</label>
+                            <input type="text" id="kitName" placeholder="e.g., Filter Maintenance Kit" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <input type="text" id="kitDescription" placeholder="e.g., Complete set for quarterly maintenance" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Select Parts for Kit</label>
+                        <div id="kitPartsSelector" class="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded p-4 bg-white">
+                            <!-- Parts checkboxes will be populated here -->
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="saveKit()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">Save Kit</button>
+                        <button onclick="hideCreateKitForm()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Part Form -->
+        <div id="addForm" class="hidden bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-semibold mb-6">➕ Add New Part</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Part Name *</label>
+                    <input type="text" id="partName" placeholder="e.g., Sand Filter 24 inch" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Current Stock</label>
+                    <input type="number" id="partStock" placeholder="0" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Minimum Stock</label>
+                    <input type="number" id="partMinStock" placeholder="0" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                    <input type="number" id="partPrice" placeholder="0.00" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+                    <input type="text" id="partSupplier" placeholder="e.g., AquaTech Supply" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <select id="partCategory" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="Filtration">Filtration</option>
+                        <option value="Cleaning">Cleaning</option>
+                        <option value="Heating">Heating</option>
+                        <option value="Chemical">Chemical</option>
+                        <option value="Lighting">Lighting</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-2 mt-6">
+                <button onclick="addPart()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Add Part</button>
+                <button onclick="hideAddForm()" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Parts Table -->
+        <div id="tablePanel" class="hidden bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-800">Parts Inventory</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Part Name</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Min Stock</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="partsTable" class="bg-white divide-y divide-gray-200">
+                        <!-- Parts will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="noResults" class="text-center py-12 text-gray-500 hidden">
+                <div class="text-4xl mb-2">📦</div>
+                <p class="text-lg">No parts found</p>
+                <p class="text-sm">Try adjusting your search or filters</p>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <div class="flex items-center space-x-3">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span class="text-lg">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let parts = [];
+        let allParts = [];
+        let kits = [];
+        let apiUrl = '';
+        let isConnected = false;
+        
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedApiUrl = localStorage.getItem('googleApiUrl');
+            if (savedApiUrl) {
+                document.getElementById('apiUrl').value = savedApiUrl;
+                apiUrl = savedApiUrl;
+                testConnection();
+            }
+            loadKits();
+        });
+
+        // Connection Management
+        async function testConnection() {
+            if (!apiUrl) return;
+            
+            try {
+                showLoading(true);
+                console.log('Testing connection to:', apiUrl);
+                const response = await fetch(apiUrl + '?action=test');
+                const data = await response.json();
+                
+                if (data.success) {
+                    setConnected(true);
+                    await loadParts();
+                } else {
+                    throw new Error(data.error || 'Connection test failed');
+                }
+            } catch (error) {
+                console.error('Connection test failed:', error);
+                setConnected(false);
+                showNotification('Connection failed: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function setConnected(connected) {
+            isConnected = connected;
+            const statusEl = document.getElementById('connectionStatus');
+            
+            if (connected) {
+                statusEl.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                        <span class="font-medium text-green-800">Connected to Google Sheets</span>
+                    </div>
+                    <p class="text-green-600 text-sm mt-1">System ready for inventory management</p>
+                `;
+                statusEl.className = 'p-4 rounded-lg bg-green-50 border border-green-200';
+                
+                // Hide setup panel
+                document.getElementById('setupPanel').classList.add('hidden');
+                
+                // Show functional panels
+                document.getElementById('statsPanel').classList.remove('hidden');
+                document.getElementById('searchPanel').classList.remove('hidden');
+                document.getElementById('tablePanel').classList.remove('hidden');
+                
+                // Enable buttons
+                document.getElementById('refreshBtn').disabled = false;
+                document.getElementById('addBtn').disabled = false;
+                document.getElementById('kitsBtn').disabled = false;
+                document.getElementById('exportBtn').disabled = false;
+            } else {
+                statusEl.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                        <span class="font-medium text-red-800">Not Connected to Google Sheets</span>
+                    </div>
+                    <p class="text-red-600 text-sm mt-1">Please configure Google Apps Script to start using the system</p>
+                `;
+                statusEl.className = 'p-4 rounded-lg bg-red-50 border border-red-200';
+                
+                // Show setup panel
+                document.getElementById('setupPanel').classList.remove('hidden');
+                
+                // Hide functional panels
+                document.getElementById('statsPanel').classList.add('hidden');
+                document.getElementById('searchPanel').classList.add('hidden');
+                document.getElementById('tablePanel').classList.add('hidden');
+                
+                // Disable buttons
+                document.getElementById('refreshBtn').disabled = true;
+                document.getElementById('addBtn').disabled = true;
+                document.getElementById('kitsBtn').disabled = true;
+                document.getElementById('exportBtn').disabled = true;
+            }
+        }
+
+        // Data Management
+        async function loadParts() {
+            if (!isConnected) return;
+            
+            try {
+                showLoading(true);
+                const response = await fetch(apiUrl + '?action=getParts');
+                const data = await response.json();
+                
+                if (data.success) {
+                    parts = data.data;
+                    allParts = [...parts];
+                    renderParts();
+                    updateStats();
+                    showNotification('Data loaded successfully!', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to load parts');
+                }
+            } catch (error) {
+                console.error('Error loading parts:', error);
+                showNotification('Failed to load parts: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function addPart() {
+            const name = document.getElementById('partName').value.trim();
+            if (!name) {
+                showNotification('Please enter a part name', 'error');
+                return;
+            }
+
+            const newPart = {
+                action: 'addPart',
+                name: name,
+                currentStock: parseInt(document.getElementById('partStock').value) || 0,
+                minStock: parseInt(document.getElementById('partMinStock').value) || 0,
+                price: parseFloat(document.getElementById('partPrice').value) || 0,
+                supplier: document.getElementById('partSupplier').value.trim() || '',
+                category: document.getElementById('partCategory').value
+            };
+
+            try {
+                showLoading(true);
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newPart)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Part added successfully!', 'success');
+                    clearForm();
+                    hideAddForm();
+                    await loadParts();
+                } else {
+                    throw new Error(data.error || 'Failed to add part');
+                }
+            } catch (error) {
+                console.error('Error adding part:', error);
+                showNotification('Failed to add part: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function adjustStock(id, change) {
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'updateStock', id: id, change: change })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    await loadParts();
+                    showNotification(`Stock updated: ${data.oldStock} → ${data.newStock}`, 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to update stock');
+                }
+            } catch (error) {
+                console.error('Error updating stock:', error);
+                showNotification('Failed to update stock: ' + error.message, 'error');
+            }
+        }
+
+        async function deletePart(id) {
+            const part = allParts.find(p => p.id == id);
+            if (!part) return;
+            
+            if (!confirm(`Delete "${part.name}"? This action cannot be undone.`)) return;
+            
+            try {
+                showLoading(true);
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'deletePart', id: id })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Part deleted successfully!', 'success');
+                    await loadParts();
+                } else {
+                    throw new Error(data.error || 'Failed to delete part');
+                }
+            } catch (error) {
+                console.error('Error deleting part:', error);
+                showNotification('Failed to delete part: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // UI Rendering
+        function renderParts() {
+            const tbody = document.getElementById('partsTable');
+            tbody.innerHTML = '';
+
+            parts.forEach(part => {
+                const status = getStockStatus(part);
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition-colors';
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4">
+                        <div class="flex flex-col">
+                            <div class="text-sm font-medium text-gray-900">${part.name}</div>
+                            <div class="text-sm text-gray-500">${part.category || 'Uncategorized'}</div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            ${status === 'critical' ? '🚨' : status === 'warning' ? '⚠️' : '✅'}
+                            <span class="text-lg font-semibold">${part.currentStock}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="text-sm text-gray-600">${part.minStock}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(status)}">
+                            ${getStatusText(status)}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <span class="text-sm font-medium text-gray-900">${part.price.toLocaleString()}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-sm text-gray-600">${part.supplier}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <div class="flex items-center justify-center space-x-2">
+                            <button onclick="adjustStock(${part.id}, 1)" class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs font-medium transition-colors" title="Add 1">
+                                +1
+                            </button>
+                            <button onclick="adjustStock(${part.id}, -1)" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-medium transition-colors" title="Remove 1">
+                                -1
+                            </button>
+                            <button onclick="deletePart(${part.id})" class="bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 rounded text-xs font-medium transition-colors" title="Delete part">
+                                🗑️
+                            </button>
+                        </div>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('noResults').classList.toggle('hidden', parts.length > 0);
+        }
+
+        function getStockStatus(part) {
+            if (part.currentStock === 0 || part.currentStock <= part.minStock) return 'critical';
+            if (part.currentStock <= part.minStock * 1.5) return 'warning';
+            return 'normal';
+        }
+
+        function getStatusClass(status) {
+            const classes = {
+                'critical': 'bg-red-100 text-red-800',
+                'warning': 'bg-yellow-100 text-yellow-800',
+                'normal': 'bg-green-100 text-green-800'
+            };
+            return classes[status] || 'bg-gray-100 text-gray-800';
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                'critical': 'Critical',
+                'warning': 'Low Stock',
+                'normal': 'Good'
+            };
+            return texts[status] || 'Unknown';
+        }
+
+        function updateStats() {
+            const total = allParts.length;
+            const critical = allParts.filter(part => getStockStatus(part) === 'critical').length;
+            const totalValue = allParts.reduce((sum, part) => sum + (part.currentStock * part.price), 0);
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('criticalCount').textContent = critical;
+            document.getElementById('totalValue').textContent = ' + totalValue.toLocaleString();
+            document.getElementById('kitsCount').textContent = kits.length;
+        }
+
+        function filterParts() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            parts = allParts.filter(part => {
+                const matchesSearch = part.name.toLowerCase().includes(searchTerm) ||
+                                     part.supplier.toLowerCase().includes(searchTerm);
+                const matchesCategory = categoryFilter === 'all' || part.category === categoryFilter;
+                const matchesStatus = statusFilter === 'all' || getStockStatus(part) === statusFilter;
+                
+                return matchesSearch && matchesCategory && matchesStatus;
+            });
+            
+            renderParts();
+        }
+
+        // Kits Management
+        function loadKits() {
+            const savedKits = localStorage.getItem('poolPartsKits');
+            if (savedKits) {
+                kits = JSON.parse(savedKits);
+            } else {
+                kits = [
+                    {
+                        id: 1,
+                        name: "Filter Maintenance Kit",
+                        description: "Complete set for quarterly filter maintenance",
+                        parts: [
+                            { partId: 1, quantity: 1 },
+                            { partId: 2, quantity: 4 }
+                        ]
+                    }
+                ];
+                localStorage.setItem('poolPartsKits', JSON.stringify(kits));
+            }
+            renderKits();
+        }
+
+        function renderKits() {
+            const kitsList = document.getElementById('kitsList');
+            kitsList.innerHTML = '';
+
+            if (kits.length === 0) {
+                kitsList.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="text-4xl mb-2">📦</div><p>No kits created yet</p><p class="text-sm">Create your first kit to get started!</p></div>';
+                return;
+            }
+
+            kits.forEach(kit => {
+                const kitDiv = document.createElement('div');
+                kitDiv.className = 'bg-gray-50 p-6 rounded-lg border';
+                
+                let totalValue = 0;
+                let kitPartsHtml = '';
+                let allPartsAvailable = true;
+
+                kit.parts.forEach(kitPart => {
+                    const part = allParts.find(p => p.id == kitPart.partId);
+                    if (part) {
+                        totalValue += part.price * kitPart.quantity;
+                        const available = part.currentStock >= kitPart.quantity;
+                        if (!available) allPartsAvailable = false;
+                        
+                        kitPartsHtml += `
+                            <div class="flex justify-between items-center py-1 ${available ? 'text-gray-700' : 'text-red-600'}">
+                                <span class="text-sm">${part.name}</span>
+                                <span class="text-sm font-medium">${kitPart.quantity}x (${(part.price * kitPart.quantity).toLocaleString()})</span>
+                            </div>
+                        `;
+                    }
+                });
+
+                kitDiv.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">${kit.name}</h3>
+                            <p class="text-gray-600 text-sm">${kit.description}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="useKit(${kit.id})" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm transition-colors ${!allPartsAvailable ? 'opacity-50 cursor-not-allowed' : ''}" ${!allPartsAvailable ? 'disabled' : ''}>
+                                📦 Use Kit
+                            </button>
+                            <button onclick="deleteKit(${kit.id})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm transition-colors">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-1 mb-4 bg-white p-3 rounded border">
+                        ${kitPartsHtml}
+                    </div>
+                    <div class="flex justify-between items-center pt-3 border-t border-gray-300">
+                        <span class="font-semibold text-gray-800">Total Value: ${totalValue.toLocaleString()}</span>
+                        <span class="text-sm font-medium ${allPartsAvailable ? 'text-green-600' : 'text-red-600'}">
+                            ${allPartsAvailable ? '✅ All parts available' : '❌ Some parts unavailable'}
+                        </span>
+                    </div>
+                `;
+                
+                kitsList.appendChild(kitDiv);
+            });
+        }
+
+        async function useKit(kitId) {
+            const kit = kits.find(k => k.id == kitId);
+            if (!kit) return;
+
+            if (!confirm(`Use "${kit.name}" kit? This will reduce stock for all parts in the kit.`)) return;
+
+            try {
+                showLoading(true);
+                let success = true;
+                const errors = [];
+
+                for (const kitPart of kit.parts) {
+                    const part = allParts.find(p => p.id == kitPart.partId);
+                    if (!part) {
+                        errors.push(`Part with ID ${kitPart.partId} not found`);
+                        continue;
+                    }
+
+                    if (part.currentStock < kitPart.quantity) {
+                        errors.push(`Insufficient stock for ${part.name} (need ${kitPart.quantity}, have ${part.currentStock})`);
+                        success = false;
+                        continue;
+                    }
+
+                    try {
+                        await adjustStock(kitPart.partId, -kitPart.quantity);
+                    } catch (error) {
+                        errors.push(`Error updating ${part.name}: ${error.message}`);
+                        success = false;
+                    }
+                }
+
+                if (success) {
+                    showNotification(`Kit "${kit.name}" used successfully!`, 'success');
+                } else {
+                    showNotification('Some errors occurred:\n' + errors.join('\n'), 'error');
+                }
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function saveKit() {
+            const name = document.getElementById('kitName').value.trim();
+            const description = document.getElementById('kitDescription').value.trim();
+            
+            if (!name) {
+                showNotification('Please enter a kit name', 'error');
+                return;
+            }
+
+            const selectedParts = [];
+            allParts.forEach(part => {
+                const checkbox = document.getElementById(`part_${part.id}`);
+                const qtyInput = document.getElementById(`qty_${part.id}`);
+                
+                if (checkbox && checkbox.checked) {
+                    selectedParts.push({
+                        partId: part.id,
+                        quantity: parseInt(qtyInput.value) || 1
+                    });
+                }
+            });
+
+            if (selectedParts.length === 0) {
+                showNotification('Please select at least one part for the kit', 'error');
+                return;
+            }
+
+            const newKit = {
+                id: Date.now(),
+                name: name,
+                description: description,
+                parts: selectedParts
+            };
+
+            kits.push(newKit);
+            localStorage.setItem('poolPartsKits', JSON.stringify(kits));
+            
+            hideCreateKitForm();
+            renderKits();
+            updateStats();
+            showNotification('Kit created successfully!', 'success');
+        }
+
+        function deleteKit(kitId) {
+            const kit = kits.find(k => k.id == kitId);
+            if (!kit) return;
+
+            if (!confirm(`Delete kit "${kit.name}"? This action cannot be undone.`)) return;
+
+            kits = kits.filter(k => k.id != kitId);
+            localStorage.setItem('poolPartsKits', JSON.stringify(kits));
+            renderKits();
+            updateStats();
+            showNotification('Kit deleted successfully!', 'success');
+        }
+
+        // UI Helper Functions
+        function showSettings() {
+            document.getElementById('setupPanel').classList.remove('hidden');
+        }
+
+        function showKitsPanel() {
+            if (!isConnected) return;
+            document.getElementById('kitsPanel').classList.remove('hidden');
+            renderKits();
+        }
+
+        function hideKitsPanel() {
+            document.getElementById('kitsPanel').classList.add('hidden');
+            hideCreateKitForm();
+        }
+
+        function showCreateKitForm() {
+            document.getElementById('createKitForm').classList.remove('hidden');
+            populateKitPartsSelector();
+        }
+
+        function hideCreateKitForm() {
+            document.getElementById('createKitForm').classList.add('hidden');
+            document.getElementById('kitName').value = '';
+            document.getElementById('kitDescription').value = '';
+        }
+
+        function populateKitPartsSelector() {
+            const selector = document.getElementById('kitPartsSelector');
+            selector.innerHTML = '';
+
+            if (allParts.length === 0) {
+                selector.innerHTML = '<p class="text-gray-500 text-center py-4">No parts available. Add some parts first.</p>';
+                return;
+            }
+
+            allParts.forEach(part => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center space-x-3 p-2 hover:bg-gray-50 rounded';
+                div.innerHTML = `
+                    <input type="checkbox" id="part_${part.id}" value="${part.id}" class="rounded">
+                    <label for="part_${part.id}" class="flex-1 text-sm cursor-pointer">
+                        <span class="font-medium">${part.name}</span>
+                        <span class="text-gray-500">(Stock: ${part.currentStock})</span>
+                    </label>
+                    <div class="flex items-center space-x-1">
+                        <label for="qty_${part.id}" class="text-xs text-gray-500">Qty:</label>
+                        <input type="number" id="qty_${part.id}" min="1" max="${part.currentStock}" value="1" class="w-16 px-2 py-1 border rounded text-sm" disabled>
+                    </div>
+                `;
+                
+                const checkbox = div.querySelector(`#part_${part.id}`);
+                const qtyInput = div.querySelector(`#qty_${part.id}`);
+                checkbox.addEventListener('change', function() {
+                    qtyInput.disabled = !this.checked;
+                    if (this.checked) qtyInput.focus();
+                });
+                
+                selector.appendChild(div);
+            });
+        }
+
+        function showAddForm() {
+            if (!isConnected) return;
+            document.getElementById('addForm').classList.remove('hidden');
+            document.getElementById('partName').focus();
+        }
+
+        function hideAddForm() {
+            document.getElementById('addForm').classList.add('hidden');
+        }
+
+        function clearForm() {
+            ['partName', 'partStock', 'partMinStock', 'partPrice', 'partSupplier'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            document.getElementById('partCategory').value = 'Filtration';
+        }
+
+        function saveApiUrl() {
+            const url = document.getElementById('apiUrl').value.trim();
+            if (!url) {
+                showNotification('Please enter a valid Google Apps Script URL', 'error');
+                return;
+            }
+            
+            if (!url.includes('script.google.com')) {
+                showNotification('Please enter a valid Google Apps Script URL', 'error');
+                return;
+            }
+            
+            localStorage.setItem('googleApiUrl', url);
+            apiUrl = url;
+            testConnection();
+        }
+
+        function exportData() {
+            if (!isConnected || allParts.length === 0) {
+                showNotification('No data to export', 'warning');
+                return;
+            }
+
+            try {
+                const exportData = {
+                    parts: allParts,
+                    kits: kits,
+                    exportDate: new Date().toISOString(),
+                    totalValue: allParts.reduce((sum, part) => sum + (part.currentStock * part.price), 0),
+                    criticalParts: allParts.filter(part => getStockStatus(part) === 'critical').length
+                };
+
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+                const exportFileDefaultName = `pool_inventory_${new Date().toISOString().split('T')[0]}.json`;
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+                
+                showNotification('Data exported successfully!', 'success');
+            } catch (error) {
+                showNotification('Export failed: ' + error.message, 'error');
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
+        }
+
+        function showNotification(message, type = 'info') {
+            // Simple alert for now - could be enhanced with toast notifications
+            if (type === 'error') {
+                alert('Error: ' + message);
+            } else if (type === 'success') {
+                console.log('Success: ' + message);
+            } else {
+                console.log('Info: ' + message);
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('Code copied to clipboard!', 'success');
+            }).catch(err => {
+                showNotification('Failed to copy code', 'error');
+            });
+        }
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'n':
+                        e.preventDefault();
+                        if (isConnected) showAddForm();
+                        break;
+                    case 'r':
+                        e.preventDefault();
+                        if (isConnected) loadParts();
+                        break;
+                    case 'k':
+                        e.preventDefault();
+                        if (isConnected) showKitsPanel();
+                        break;
+                }
+            }
+            
+            if (e.key === 'Escape') {
+                hideAddForm();
+                hideKitsPanel();
+                hideCreateKitForm();
+            }
+        });
+
+        // Auto-save API URL when typing
+        document.getElementById('apiUrl').addEventListener('input', function() {
+            clearTimeout(this.saveTimeout);
+            this.saveTimeout = setTimeout(() => {
+                const url = this.value.trim();
+                if (url && url.includes('script.google.com')) {
+                    localStorage.setItem('googleApiUrl', url);
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
