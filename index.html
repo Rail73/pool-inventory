@@ -1,529 +1,163 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏊‍♂️ Pool Parts Inventory System</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        .glow {
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        .pulse-animation {
-            animation: pulse 2s infinite;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Учёт Запчастей</title>
+  <script>
+    const SHEET_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'; // Заменить на свой ID
+    async function fetchParts() {
+      try {
+        const res = await fetch(`${SHEET_URL}?action=getParts`);
+        const json = await res.json();
+        renderTable(json);
+        document.getElementById("status").textContent = "Connected";
+      } catch (e) {
+        console.error(e);
+        document.getElementById("status").textContent = "Disconnected";
+      }
+    }
+    async function addPart() {
+      const name = document.getElementById("add-name").value;
+      const stock = +document.getElementById("add-stock").value;
+      const minStock = +document.getElementById("add-min").value;
+      const price = +document.getElementById("add-price").value;
+      const supplier = document.getElementById("add-supplier").value;
+      const category = document.getElementById("add-category").value;
+      const params = new URLSearchParams({
+        action: 'addPart', name, currentStock: stock, minStock, price, supplier, category
+      });
+      await fetch(`${SHEET_URL}?${params.toString()}`);
+      fetchParts();
+    }
+    async function deletePart(id) {
+      await fetch(`${SHEET_URL}?action=deletePart&id=${id}`);
+      fetchParts();
+    }
+    async function updateStock(id, delta) {
+      await fetch(`${SHEET_URL}?action=updateStock&id=${id}&delta=${delta}`);
+      fetchParts();
+    }
+    function renderTable(data) {
+      const tbody = document.getElementById("table-body");
+      tbody.innerHTML = '';
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+        const stockClass = row.currentStock <= row.minStock ?
+          'bg-red-100' : row.currentStock <= row.minStock * 1.5 ? 'bg-yellow-100' : 'bg-green-100';
+        tr.innerHTML = `
+          <td>${row.id}</td>
+          <td>${row.name}</td>
+          <td class="${stockClass}">${row.currentStock}</td>
+          <td>${row.minStock}</td>
+          <td>${row.price}</td>
+          <td>${row.supplier}</td>
+          <td>${row.category}</td>
+          <td>
+            <button onclick="updateStock(${row.id},1)" class="px-2">+1</button>
+            <button onclick="updateStock(${row.id},-1)" class="px-2">-1</button>
+          </td>
+          <td><button onclick="deletePart(${row.id})">❌</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    function exportJSON() {
+      const rows = [...document.querySelectorAll("#table-body tr")].map(tr => {
+        const cells = tr.querySelectorAll("td");
+        return {
+          id: cells[0].textContent,
+          name: cells[1].textContent,
+          currentStock: cells[2].textContent,
+          minStock: cells[3].textContent,
+          price: cells[4].textContent,
+          supplier: cells[5].textContent,
+          category: cells[6].textContent
+        };
+      });
+      const blob = new Blob([JSON.stringify(rows, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "inventory.json";
+      a.click();
+    }
+    window.onload = fetchParts;
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="font-sans">
-    <div class="container mx-auto p-4 max-w-6xl">
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-white mb-2">🏊‍♂️ Pool Parts Inventory System</h1>
-            <p class="text-gray-200">Manage your pool equipment and parts inventory</p>
-        </div>
+<body class="bg-gray-50 p-4">
+  <h1 class="text-2xl font-bold mb-4">📦 Учёт Запчастей</h1>
+  <div class="mb-2">Статус подключения: <span id="status" class="font-semibold">...</span></div>
 
-        <!-- Setup Panel -->
-        <div class="glass-effect rounded-lg p-6 mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-bold text-white">⚙️ System Setup</h2>
-                <button onclick="toggleSetup()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors">
-                    <span id="setup-toggle">Hide Setup</span>
-                </button>
-            </div>
-            
-            <div id="setup-panel" class="space-y-4">
-                <div>
-                    <label class="block text-gray-200 mb-2">Google Apps Script URL:</label>
-                    <input type="url" id="script-url" 
-                           placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"
-                           class="w-full p-3 rounded bg-white/20 text-white placeholder-gray-300 border border-white/30">
-                </div>
-                
-                <div class="flex gap-3">
-                    <button onclick="testConnection()" 
-                            class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition-colors">
-                        🔗 Test Connection
-                    </button>
-                    <button onclick="loadParts()" 
-                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors">
-                        📊 Load Parts
-                    </button>
-                </div>
-                
-                <div id="connection-status" class="text-center py-2"></div>
-            </div>
-        </div>
-
-        <!-- Stats Panel -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="glass-effect rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-white" id="total-parts">0</div>
-                <div class="text-gray-200">Total Parts</div>
-            </div>
-            <div class="glass-effect rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-red-400" id="critical-parts">0</div>
-                <div class="text-gray-200">Critical Stock</div>
-            </div>
-            <div class="glass-effect rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-yellow-400" id="total-value">$0</div>
-                <div class="text-gray-200">Total Value</div>
-            </div>
-        </div>
-
-        <!-- Parts Table -->
-        <div class="glass-effect rounded-lg p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-white">📦 Inventory</h2>
-                <button onclick="toggleAddForm()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition-colors">
-                    ➕ Add New Part
-                </button>
-            </div>
-
-            <!-- Add Part Form -->
-            <div id="add-part-form" style="display: none;" class="mb-4 p-4 bg-white/10 rounded-lg">
-                <h3 class="text-white font-bold mb-3">Add New Part</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <input type="text" id="new-part-name" placeholder="Part Name" class="p-2 rounded bg-white/20 text-white placeholder-gray-300">
-                    <input type="number" id="new-part-current" placeholder="Current Stock" class="p-2 rounded bg-white/20 text-white placeholder-gray-300">
-                    <input type="number" id="new-part-min" placeholder="Min Stock" class="p-2 rounded bg-white/20 text-white placeholder-gray-300">
-                    <input type="number" id="new-part-price" placeholder="Price" step="0.01" class="p-2 rounded bg-white/20 text-white placeholder-gray-300">
-                    <input type="text" id="new-part-supplier" placeholder="Supplier" class="p-2 rounded bg-white/20 text-white placeholder-gray-300">
-                    <div class="flex gap-2">
-                        <button onclick="addNewPart()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Add</button>
-                        <button onclick="toggleAddForm()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">Cancel</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="border-b border-white/20">
-                            <th class="text-left text-gray-200 p-2">Part Name</th>
-                            <th class="text-left text-gray-200 p-2">Current Stock</th>
-                            <th class="text-left text-gray-200 p-2">Min Stock</th>
-                            <th class="text-left text-gray-200 p-2">Price</th>
-                            <th class="text-left text-gray-200 p-2">Supplier</th>
-                            <th class="text-left text-gray-200 p-2">Status</th>
-                            <th class="text-left text-gray-200 p-2">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="parts-table">
-                        <tr>
-                            <td colspan="7" class="text-center text-gray-300 p-8">
-                                Connect to Google Sheets to load inventory data
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Kit Management -->
-        <div class="glass-effect rounded-lg p-6 mt-6">
-            <h2 class="text-xl font-bold text-white mb-4">🧰 Kit Management</h2>
-            <div id="kits-container">
-                <p class="text-gray-300">No kits defined yet</p>
-            </div>
-        </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <h2 class="font-semibold mb-2">➕ Добавить товар</h2>
+      <input id="add-name" placeholder="Название" class="border p-1 w-full mb-1">
+      <input id="add-stock" type="number" placeholder="Остаток" class="border p-1 w-full mb-1">
+      <input id="add-min" type="number" placeholder="Мин. остаток" class="border p-1 w-full mb-1">
+      <input id="add-price" type="number" placeholder="Цена" class="border p-1 w-full mb-1">
+      <input id="add-supplier" placeholder="Поставщик" class="border p-1 w-full mb-1">
+      <input id="add-category" placeholder="Категория" class="border p-1 w-full mb-1">
+      <button onclick="addPart()" class="bg-blue-500 text-white px-4 py-2 rounded">Добавить</button>
     </div>
+    <div>
+      <h2 class="font-semibold mb-2">📤 Экспорт</h2>
+      <button onclick="exportJSON()" class="bg-green-500 text-white px-4 py-2 rounded">В JSON</button>
+    </div>
+  </div>
 
-    <script>
-        console.log('🚀 Starting Pool Parts Inventory System...');
-        
-        // Global variables
-        let parts = [];
-        let kits = [];
-        let isConnected = false;
+  <h2 class="text-xl font-bold mt-6 mb-2">📋 Таблица</h2>
+  <table class="min-w-full bg-white shadow-md">
+    <thead class="bg-gray-200">
+      <tr><th>ID</th><th>Название</th><th>Ост.</th><th>Мин.</th><th>Цена</th><th>Поставщик</th><th>Категория</th><th>+/-</th><th>Удалить</th></tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
 
-        // Initialize system
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ DOM loaded, setting up system...');
-            initializeSystem();
-            setupEventListeners();
-            console.log('✅ System initialized successfully');
-        });
-
-        function setupEventListeners() {
-            console.log('📝 Setting up event listeners...');
-            
-            // Auto-save URL when changed
-            document.getElementById('script-url').addEventListener('input', function() {
-                localStorage.setItem('poolInventoryURL', this.value);
-                console.log('💾 URL auto-saved');
-            });
-            
-            console.log('✅ Event listeners set up');
-        }
-
-        function initializeSystem() {
-            console.log('📂 Loading saved data...');
-            
-            // Load saved URL
-            const savedURL = localStorage.getItem('poolInventoryURL');
-            if (savedURL) {
-                document.getElementById('script-url').value = savedURL;
-                console.log('📝 Loaded saved URL');
-            }
-            
-            // Load saved kits
-            const savedKits = localStorage.getItem('poolInventoryKits');
-            if (savedKits) {
-                kits = JSON.parse(savedKits);
-                console.log('📦 Loaded kits:', kits.length);
-            }
-        }
-
-        function toggleSetup() {
-            console.log('⚙️ Toggling setup panel');
-            const panel = document.getElementById('setup-panel');
-            const toggle = document.getElementById('setup-toggle');
-            
-            if (panel.style.display === 'none') {
-                panel.style.display = 'block';
-                toggle.textContent = 'Hide Setup';
-            } else {
-                panel.style.display = 'none';
-                toggle.textContent = 'Show Setup';
-            }
-        }
-
-        async function testConnection() {
-            const url = document.getElementById('script-url').value;
-            if (!url) {
-                showStatus('❌ Please enter Google Apps Script URL', 'error');
-                return;
-            }
-
-            console.log('🔗 Testing connection to:', url);
-            showStatus('🔄 Testing connection...', 'info');
-
-            try {
-                // Use GET request with action parameter
-                const testUrl = `${url}?action=test`;
-                const response = await fetch(testUrl, {
-                    method: 'GET',
-                    mode: 'cors'
-                });
-
-                if (response.ok) {
-                    console.log('✅ Connection successful');
-                    showStatus('✅ Connection successful!', 'success');
-                    setConnected(true);
-                } else {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-            } catch (error) {
-                console.error('❌ Connection failed:', error);
-                showStatus('❌ Connection failed. Check URL and try again.', 'error');
-                setConnected(false);
-            }
-        }
-
-        function setConnected(connected) {
-            console.log('🔄 Setting connected status:', connected);
-            isConnected = connected;
-            
-            // Update UI based on connection status
-            const loadButton = document.querySelector('button[onclick="loadParts()"]');
-            if (loadButton) {
-                loadButton.disabled = !connected;
-                loadButton.className = connected 
-                    ? 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors'
-                    : 'bg-gray-500 text-white px-4 py-2 rounded cursor-not-allowed';
-            }
-        }
-
-        async function loadParts() {
-            if (!isConnected) {
-                showStatus('❌ Please test connection first', 'error');
-                return;
-            }
-
-            const url = document.getElementById('script-url').value;
-            console.log('📊 Loading parts from Google Sheets...');
-            showStatus('📊 Loading parts...', 'info');
-
-            try {
-                // Use GET request with action parameter
-                const loadUrl = `${url}?action=getParts`;
-                const response = await fetch(loadUrl, {
-                    method: 'GET',
-                    mode: 'cors'
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const data = await response.json();
-                if (data.success) {
-                    parts = data.data || [];
-                } else {
-                    throw new Error(data.error || 'Failed to load parts');
-                }
-                
-                console.log('✅ Parts loaded:', parts.length);
-                showStatus('✅ Parts loaded successfully!', 'success');
-                
-                renderPartsTable();
-                updateStats();
-                
-            } catch (error) {
-                console.error('❌ Error loading parts:', error);
-                showStatus('❌ Error loading parts. Check connection.', 'error');
-            }
-        }
-
-        function renderPartsTable() {
-            console.log('🎨 Rendering parts table...');
-            const tbody = document.getElementById('parts-table');
-            
-            if (parts.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="text-center text-gray-300 p-8">
-                            No parts found. Check your Google Sheets data.
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            tbody.innerHTML = parts.map(part => {
-                const status = getStockStatus(part);
-                const statusColor = status === 'Critical' ? 'text-red-400' : 
-                                  status === 'Low' ? 'text-yellow-400' : 'text-green-400';
-                
-                return `
-                    <tr class="border-b border-white/10 hover:bg-white/5">
-                        <td class="p-2 text-white">${part.name}</td>
-                        <td class="p-2 text-white font-bold">${part.currentStock}</td>
-                        <td class="p-2 text-gray-300">${part.minStock}</td>
-                        <td class="p-2 text-gray-300">${part.price.toFixed(2)}</td>
-                        <td class="p-2 text-gray-300">${part.supplier || '-'}</td>
-                        <td class="p-2 ${statusColor} font-bold">${status}</td>
-                        <td class="p-2">
-                            <div class="flex gap-1">
-                                <button onclick="handleTableActions('remove', ${part.id})" 
-                                        class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm">-</button>
-                                <button onclick="handleTableActions('add', ${part.id})" 
-                                        class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-sm">+</button>
-                                <button onclick="deletePart(${part.id})" 
-                                        class="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1 rounded text-sm">🗑️</button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-            
-            console.log('✅ Parts table rendered');
-        }
-
-        function handleTableActions(action, partId) {
-            console.log('🔄 Table action:', action, 'for part ID:', partId);
-            
-            if (action === 'add') {
-                adjustStock(partId, 1);
-            } else if (action === 'remove') {
-                adjustStock(partId, -1);
-            }
-        }
-
-        async function adjustStock(partId, change) {
-            console.log('📦 Adjusting stock for ID:', partId, 'change:', change);
-            
-            const url = document.getElementById('script-url').value;
-            if (!url || !isConnected) {
-                showStatus('❌ Not connected to Google Sheets', 'error');
-                return;
-            }
-
-            try {
-                // Use GET request with parameters in URL
-                const adjustUrl = `${url}?action=updateStock&partId=${partId}&change=${change}`;
-                const response = await fetch(adjustUrl, {
-                    method: 'GET',
-                    mode: 'cors'
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    // Update local data
-                    const part = parts.find(p => p.id === partId);
-                    if (part) {
-                        part.currentStock = Math.max(0, part.currentStock + change);
-                        renderPartsTable();
-                        updateStats();
-                    }
-                    console.log('✅ Stock updated successfully');
-                } else {
-                    throw new Error(result.error || 'Update failed');
-                }
-
-            } catch (error) {
-                console.error('❌ Error updating stock:', error);
-                showStatus('❌ Error updating stock', 'error');
-            }
-        }
-
-        function getStockStatus(part) {
-            if (part.currentStock === 0) return 'Critical';
-            if (part.currentStock <= part.minStock) return 'Low';
-            return 'Good';
-        }
-
-        function updateStats() {
-            const totalParts = parts.length;
-            const criticalParts = parts.filter(p => p.currentStock === 0).length;
-            const totalValue = parts.reduce((sum, part) => sum + (part.currentStock * part.price), 0);
-
-            document.getElementById('total-parts').textContent = totalParts;
-            document.getElementById('critical-parts').textContent = criticalParts;
-            document.getElementById('total-value').textContent = `$${totalValue.toFixed(2)}`;
-            
-            console.log('📊 Stats updated - Total:', totalParts, 'Critical:', criticalParts);
-        }
-
-        function showStatus(message, type) {
-            const statusDiv = document.getElementById('connection-status');
-            const colors = {
-                success: 'text-green-400',
-                error: 'text-red-400',
-                info: 'text-blue-400'
-            };
-            
-            statusDiv.className = `text-center py-2 ${colors[type] || 'text-gray-300'}`;
-            statusDiv.textContent = message;
-
-            // Auto-hide after 3 seconds for non-error messages
-            if (type !== 'error') {
-                setTimeout(() => {
-                    statusDiv.textContent = '';
-                }, 3000);
-            }
-        }
-
-        function toggleAddForm() {
-            const form = document.getElementById('add-part-form');
-            if (form.style.display === 'none') {
-                form.style.display = 'block';
-                // Clear form
-                document.getElementById('new-part-name').value = '';
-                document.getElementById('new-part-current').value = '';
-                document.getElementById('new-part-min').value = '';
-                document.getElementById('new-part-price').value = '';
-                document.getElementById('new-part-supplier').value = '';
-            } else {
-                form.style.display = 'none';
-            }
-        }
-
-        async function addNewPart() {
-            const url = document.getElementById('script-url').value;
-            if (!url || !isConnected) {
-                showStatus('❌ Not connected to Google Sheets', 'error');
-                return;
-            }
-
-            const name = document.getElementById('new-part-name').value.trim();
-            const currentStock = document.getElementById('new-part-current').value;
-            const minStock = document.getElementById('new-part-min').value;
-            const price = document.getElementById('new-part-price').value;
-            const supplier = document.getElementById('new-part-supplier').value.trim();
-
-            if (!name) {
-                showStatus('❌ Part name is required', 'error');
-                return;
-            }
-
-            try {
-                showStatus('🔄 Adding part...', 'info');
-                
-                const addUrl = `${url}?action=addPart&name=${encodeURIComponent(name)}&currentStock=${currentStock || 0}&minStock=${minStock || 0}&price=${price || 0}&supplier=${encodeURIComponent(supplier)}`;
-                const response = await fetch(addUrl, {
-                    method: 'GET',
-                    mode: 'cors'
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    showStatus('✅ Part added successfully!', 'success');
-                    toggleAddForm();
-                    loadParts(); // Reload parts to show the new one
-                } else {
-                    throw new Error(result.error || 'Failed to add part');
-                }
-
-            } catch (error) {
-                console.error('❌ Error adding part:', error);
-                showStatus('❌ Error adding part', 'error');
-            }
-        }
-
-        async function deletePart(partId) {
-            if (!confirm('Are you sure you want to delete this part?')) {
-                return;
-            }
-
-            const url = document.getElementById('script-url').value;
-            if (!url || !isConnected) {
-                showStatus('❌ Not connected to Google Sheets', 'error');
-                return;
-            }
-
-            try {
-                showStatus('🔄 Deleting part...', 'info');
-                
-                const deleteUrl = `${url}?action=deletePart&id=${partId}`;
-                const response = await fetch(deleteUrl, {
-                    method: 'GET',
-                    mode: 'cors'
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    showStatus('✅ Part deleted successfully!', 'success');
-                    loadParts(); // Reload parts to show updated list
-                } else {
-                    throw new Error(result.error || 'Failed to delete part');
-                }
-
-            } catch (error) {
-                console.error('❌ Error deleting part:', error);
-                showStatus('❌ Error deleting part', 'error');
-            }
-        }
-
-        console.log('🎉 Pool Parts Inventory System loaded successfully!');
-    </script>
+  <details class="mt-6">
+    <summary class="font-semibold">📘 Инструкция по Google Sheets</summary>
+    <ol class="list-decimal pl-5">
+      <li>Создайте новую Google Таблицу.</li>
+      <li>Перейдите в меню Расширения → Apps Script.</li>
+      <li>Вставьте следующий код (ниже).</li>
+      <li>Опубликуйте → Развернуть как веб-приложение → Укажите доступ: для всех, и получите URL.</li>
+      <li>Замените YOUR_SCRIPT_ID в коде на ваш ID из URL.</li>
+    </ol>
+    <pre class="bg-gray-100 p-2 mt-2 text-sm overflow-auto" id="script-code">
+function doGet(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Parts');
+  const action = e.parameter.action;
+  const id = e.parameter.id;
+  if (action == 'getParts') {
+    const data = ss.getDataRange().getValues().slice(1);
+    return ContentService.createTextOutput(JSON.stringify(data.map(r => ({
+      id: r[0], name: r[1], currentStock: r[2], minStock: r[3], price: r[4], supplier: r[5], category: r[6]
+    })))).setMimeType(ContentService.MimeType.JSON);
+  }
+  if (action == 'addPart') {
+    const nextId = ss.getLastRow();
+    ss.appendRow([nextId, e.parameter.name, +e.parameter.currentStock, +e.parameter.minStock, +e.parameter.price, e.parameter.supplier, e.parameter.category]);
+    return ContentService.createTextOutput('OK');
+  }
+  if (action == 'deletePart') {
+    const data = ss.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) if (data[i][0] == id) ss.deleteRow(i + 1);
+    return ContentService.createTextOutput('OK');
+  }
+  if (action == 'updateStock') {
+    const data = ss.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == id) {
+        ss.getRange(i + 1, 3).setValue(+data[i][2] + +e.parameter.delta);
+        break;
+      }
+    }
+    return ContentService.createTextOutput('OK');
+  }
+  return ContentService.createTextOutput('Unknown action');
+}
+    </pre>
+  </details>
 </body>
 </html>
