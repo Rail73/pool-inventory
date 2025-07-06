@@ -44,7 +44,7 @@
         </div>
 
         <!-- Setup Panel -->
-        <div id="setupPanel" class="bg-blue-50 p-6 rounded-lg mb-6 border border-blue-200">
+        <div id="setupPanel" class="hidden bg-blue-50 p-6 rounded-lg mb-6 border border-blue-200">
             <h2 class="text-xl font-semibold mb-4">🚀 Setup Google Sheets Integration</h2>
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -94,7 +94,7 @@
                     <button id="copyCodeBtn" class="bg-green-500 text-white px-3 py-1 rounded text-sm mb-2">
                         📋 Copy Code
                     </button>
-                    <pre id="codeBlock" class="bg-gray-900 text-green-400 p-4 rounded text-sm overflow-x-auto max-h-64"><code>function doGet(e) {
+                    <pre id="codeBlock" class="bg-gray-900 text-green-400 p-4 rounded text-sm overflow-x-auto max-h-64">function doGet(e) {
   if (!e || !e.parameter) {
     return ContentService.createTextOutput(JSON.stringify({
       success: false, error: 'No parameters'
@@ -230,7 +230,7 @@ function deletePart(data) {
   } catch (error) {
     return { success: false, error: error.toString() };
   }
-}</code></pre>
+}</pre>
                 </div>
             </details>
         </div>
@@ -319,30 +319,36 @@ function deletePart(data) {
     </div>
 
     <script>
-        // Global state
+        console.log('🚀 Starting Pool Parts Inventory System...');
+        
+        // Global variables
         let parts = [];
         let allParts = [];
         let kits = [];
         let apiUrl = '';
         let isConnected = false;
 
-        // Initialize
+        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Page loaded, initializing...');
+            console.log('✅ DOM loaded, setting up system...');
             setupEventListeners();
             loadSavedSettings();
+            loadKits();
+            console.log('✅ System initialized successfully');
         });
 
         function setupEventListeners() {
-            console.log('Setting up event listeners...');
+            console.log('📝 Setting up event listeners...');
             
-            // Button events
-            document.getElementById('setupBtn').addEventListener('click', showSetup);
+            // Main buttons
+            document.getElementById('setupBtn').addEventListener('click', toggleSetup);
             document.getElementById('connectBtn').addEventListener('click', testConnection);
             document.getElementById('copyCodeBtn').addEventListener('click', copyCode);
             document.getElementById('refreshBtn').addEventListener('click', loadParts);
             document.getElementById('addBtn').addEventListener('click', showAddForm);
             document.getElementById('kitsBtn').addEventListener('click', showKitsPanel);
+            
+            // Form buttons
             document.getElementById('savePartBtn').addEventListener('click', addPart);
             document.getElementById('cancelAddBtn').addEventListener('click', hideAddForm);
             document.getElementById('createKitBtn').addEventListener('click', createKit);
@@ -351,7 +357,7 @@ function deletePart(data) {
             // Search
             document.getElementById('searchInput').addEventListener('input', filterParts);
             
-            console.log('Event listeners set up successfully');
+            console.log('✅ Event listeners set up');
         }
 
         function loadSavedSettings() {
@@ -359,11 +365,25 @@ function deletePart(data) {
             if (savedUrl) {
                 document.getElementById('apiUrl').value = savedUrl;
                 apiUrl = savedUrl;
-                console.log('Loaded saved URL:', apiUrl);
+                console.log('📂 Loaded saved URL');
             }
         }
 
-        function showSetup() {
+        function loadKits() {
+            const savedKits = localStorage.getItem('poolPartsKits');
+            if (savedKits) {
+                try {
+                    kits = JSON.parse(savedKits);
+                    console.log('📦 Loaded kits:', kits.length);
+                } catch (e) {
+                    console.log('❌ Error loading kits:', e);
+                    kits = [];
+                }
+            }
+        }
+
+        function toggleSetup() {
+            console.log('⚙️ Toggling setup panel');
             const panel = document.getElementById('setupPanel');
             panel.classList.toggle('hidden');
         }
@@ -371,19 +391,20 @@ function deletePart(data) {
         async function testConnection() {
             const url = document.getElementById('apiUrl').value.trim();
             if (!url) {
-                alert('Please enter a URL');
+                alert('❌ Please enter a URL');
                 return;
             }
 
+            console.log('🔗 Testing connection to:', url);
             apiUrl = url;
             localStorage.setItem('googleApiUrl', url);
 
             try {
-                console.log('Testing connection to:', url);
                 const response = await fetch(url + '?action=test');
                 const data = await response.json();
                 
                 if (data.success) {
+                    console.log('✅ Connection successful');
                     setConnected(true);
                     await loadParts();
                     alert('✅ Connected successfully!');
@@ -391,7 +412,7 @@ function deletePart(data) {
                     throw new Error(data.error || 'Connection failed');
                 }
             } catch (error) {
-                console.error('Connection failed:', error);
+                console.error('❌ Connection failed:', error);
                 alert('❌ Connection failed: ' + error.message);
                 setConnected(false);
             }
@@ -400,6 +421,8 @@ function deletePart(data) {
         function setConnected(connected) {
             isConnected = connected;
             const status = document.getElementById('connectionStatus');
+            
+            console.log('🔄 Setting connected status:', connected);
             
             if (connected) {
                 status.innerHTML = `
@@ -444,10 +467,13 @@ function deletePart(data) {
         }
 
         async function loadParts() {
-            if (!isConnected) return;
+            if (!isConnected) {
+                console.log('❌ Not connected, cannot load parts');
+                return;
+            }
             
             try {
-                console.log('Loading parts...');
+                console.log('📊 Loading parts from Google Sheets...');
                 const response = await fetch(apiUrl + '?action=getParts');
                 const data = await response.json();
                 
@@ -456,17 +482,18 @@ function deletePart(data) {
                     allParts = [...parts];
                     renderParts();
                     updateStats();
-                    console.log('Parts loaded:', parts.length);
+                    console.log('✅ Parts loaded:', parts.length);
                 } else {
                     throw new Error(data.error);
                 }
             } catch (error) {
-                console.error('Error loading parts:', error);
-                alert('Failed to load parts: ' + error.message);
+                console.error('❌ Error loading parts:', error);
+                alert('❌ Failed to load parts: ' + error.message);
             }
         }
 
         function renderParts() {
+            console.log('🎨 Rendering parts table...');
             const tbody = document.getElementById('partsTable');
             tbody.innerHTML = '';
 
@@ -487,16 +514,45 @@ function deletePart(data) {
                     <td class="px-4 py-3 text-right">$${part.price}</td>
                     <td class="px-4 py-3">${part.supplier}</td>
                     <td class="px-4 py-3 text-center">
-                        <button onclick="adjustStock(${part.id}, 1)" class="bg-green-500 text-white px-2 py-1 rounded text-xs mr-1">+1</button>
-                        <button onclick="adjustStock(${part.id}, -1)" class="bg-red-500 text-white px-2 py-1 rounded text-xs mr-1">-1</button>
-                        <button onclick="deletePart(${part.id})" class="bg-gray-500 text-white px-2 py-1 rounded text-xs">🗑️</button>
+                        <button class="bg-green-500 text-white px-2 py-1 rounded text-xs mr-1 hover:bg-green-600" 
+                                data-action="add" data-id="${part.id}">+1</button>
+                        <button class="bg-red-500 text-white px-2 py-1 rounded text-xs mr-1 hover:bg-red-600" 
+                                data-action="remove" data-id="${part.id}">-1</button>
+                        <button class="bg-gray-500 text-white px-2 py-1 rounded text-xs hover:bg-gray-600" 
+                                data-action="delete" data-id="${part.id}">🗑️</button>
                     </td>
                 `;
                 
                 tbody.appendChild(row);
             });
 
+            // Add click handlers for action buttons
+            tbody.addEventListener('click', handleTableActions);
+
             document.getElementById('noResults').classList.toggle('hidden', parts.length > 0);
+            console.log('✅ Parts table rendered');
+        }
+
+        function handleTableActions(event) {
+            const button = event.target.closest('button[data-action]');
+            if (!button) return;
+
+            const action = button.dataset.action;
+            const id = parseInt(button.dataset.id);
+
+            console.log('🔄 Table action:', action, 'for part ID:', id);
+
+            switch (action) {
+                case 'add':
+                    adjustStock(id, 1);
+                    break;
+                case 'remove':
+                    adjustStock(id, -1);
+                    break;
+                case 'delete':
+                    deletePart(id);
+                    break;
+            }
         }
 
         function getStockStatus(part) {
@@ -506,19 +562,21 @@ function deletePart(data) {
         }
 
         function getStatusClass(status) {
-            switch(status) {
-                case 'critical': return 'bg-red-100 text-red-800';
-                case 'warning': return 'bg-yellow-100 text-yellow-800';
-                default: return 'bg-green-100 text-green-800';
-            }
+            const classes = {
+                'critical': 'bg-red-100 text-red-800',
+                'warning': 'bg-yellow-100 text-yellow-800',
+                'normal': 'bg-green-100 text-green-800'
+            };
+            return classes[status] || 'bg-gray-100 text-gray-800';
         }
 
         function getStatusText(status) {
-            switch(status) {
-                case 'critical': return 'Critical';
-                case 'warning': return 'Low';
-                default: return 'Good';
-            }
+            const texts = {
+                'critical': 'Critical',
+                'warning': 'Low',
+                'normal': 'Good'
+            };
+            return texts[status] || 'Unknown';
         }
 
         function updateStats() {
@@ -530,10 +588,14 @@ function deletePart(data) {
             document.getElementById('criticalCount').textContent = critical;
             document.getElementById('totalValue').textContent = '$' + totalValue.toLocaleString();
             document.getElementById('kitsCount').textContent = kits.length;
+            
+            console.log('📊 Stats updated - Total:', total, 'Critical:', critical);
         }
 
         function filterParts() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            console.log('🔍 Filtering parts with term:', searchTerm);
+            
             parts = allParts.filter(part => 
                 part.name.toLowerCase().includes(searchTerm) ||
                 part.supplier.toLowerCase().includes(searchTerm)
@@ -542,6 +604,8 @@ function deletePart(data) {
         }
 
         async function adjustStock(id, change) {
+            console.log('📦 Adjusting stock for ID:', id, 'change:', change);
+            
             try {
                 const response = await fetch(apiUrl, {
                     method: 'POST',
@@ -551,18 +615,24 @@ function deletePart(data) {
                 
                 const data = await response.json();
                 if (data.success) {
+                    console.log('✅ Stock updated successfully');
                     await loadParts();
                 } else {
                     throw new Error(data.error);
                 }
             } catch (error) {
-                alert('Failed to update stock: ' + error.message);
+                console.error('❌ Error updating stock:', error);
+                alert('❌ Failed to update stock: ' + error.message);
             }
         }
 
         async function deletePart(id) {
             const part = allParts.find(p => p.id == id);
-            if (!confirm(`Delete "${part.name}"?`)) return;
+            if (!part) return;
+            
+            if (!confirm(`Delete "${part.name}"? This cannot be undone.`)) return;
+            
+            console.log('🗑️ Deleting part:', part.name);
             
             try {
                 const response = await fetch(apiUrl, {
@@ -573,20 +643,25 @@ function deletePart(data) {
                 
                 const data = await response.json();
                 if (data.success) {
+                    console.log('✅ Part deleted successfully');
                     await loadParts();
                 } else {
                     throw new Error(data.error);
                 }
             } catch (error) {
-                alert('Failed to delete part: ' + error.message);
+                console.error('❌ Error deleting part:', error);
+                alert('❌ Failed to delete part: ' + error.message);
             }
         }
 
         function showAddForm() {
+            console.log('➕ Showing add form');
             document.getElementById('addForm').classList.remove('hidden');
+            document.getElementById('partName').focus();
         }
 
         function hideAddForm() {
+            console.log('❌ Hiding add form');
             document.getElementById('addForm').classList.add('hidden');
             clearForm();
         }
@@ -600,9 +675,11 @@ function deletePart(data) {
         async function addPart() {
             const name = document.getElementById('partName').value.trim();
             if (!name) {
-                alert('Please enter a part name');
+                alert('❌ Please enter a part name');
                 return;
             }
+
+            console.log('➕ Adding new part:', name);
 
             const newPart = {
                 action: 'addPart',
@@ -622,50 +699,83 @@ function deletePart(data) {
                 
                 const data = await response.json();
                 if (data.success) {
+                    console.log('✅ Part added successfully');
                     hideAddForm();
                     await loadParts();
-                    alert('Part added successfully!');
+                    alert('✅ Part added successfully!');
                 } else {
                     throw new Error(data.error);
                 }
             } catch (error) {
-                alert('Failed to add part: ' + error.message);
+                console.error('❌ Error adding part:', error);
+                alert('❌ Failed to add part: ' + error.message);
             }
         }
 
         function showKitsPanel() {
+            console.log('📦 Showing kits panel');
             document.getElementById('kitsPanel').classList.remove('hidden');
             renderKits();
         }
 
         function hideKitsPanel() {
+            console.log('❌ Hiding kits panel');
             document.getElementById('kitsPanel').classList.add('hidden');
         }
 
         function renderKits() {
+            console.log('🎨 Rendering kits...');
             const kitsList = document.getElementById('kitsList');
+            
             if (kits.length === 0) {
                 kitsList.innerHTML = '<p class="text-gray-500 text-center py-4">No kits yet. Create your first kit!</p>';
-            } else {
-                kitsList.innerHTML = kits.map(kit => `
-                    <div class="bg-gray-50 p-4 rounded border mb-2">
-                        <h3 class="font-semibold">${kit.name}</h3>
-                        <p class="text-sm text-gray-600">${kit.description}</p>
+                return;
+            }
+
+            kitsList.innerHTML = kits.map(kit => `
+                <div class="bg-gray-50 p-4 rounded border mb-2">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-semibold">${kit.name}</h3>
+                            <p class="text-sm text-gray-600">${kit.description}</p>
+                            <p class="text-xs text-gray-500">${kit.parts ? kit.parts.length : 0} parts</p>
+                        </div>
+                        <button class="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600" 
+                                data-kit-action="delete" data-kit-id="${kit.id}">
+                            Delete
+                        </button>
                     </div>
-                `).join('');
+                </div>
+            `).join('');
+
+            // Add click handler for kit actions
+            kitsList.addEventListener('click', handleKitActions);
+        }
+
+        function handleKitActions(event) {
+            const button = event.target.closest('button[data-kit-action]');
+            if (!button) return;
+
+            const action = button.dataset.kitAction;
+            const kitId = parseInt(button.dataset.kitId);
+
+            if (action === 'delete') {
+                deleteKit(kitId);
             }
         }
 
         function createKit() {
-            const name = prompt('Kit name:');
-            if (!name) return;
+            const name = prompt('Enter kit name:');
+            if (!name || !name.trim()) return;
             
-            const description = prompt('Kit description:');
+            const description = prompt('Enter kit description (optional):') || '';
             
+            console.log('📦 Creating new kit:', name);
+
             const newKit = {
                 id: Date.now(),
-                name: name,
-                description: description || '',
+                name: name.trim(),
+                description: description.trim(),
                 parts: []
             };
             
@@ -673,22 +783,81 @@ function deletePart(data) {
             localStorage.setItem('poolPartsKits', JSON.stringify(kits));
             renderKits();
             updateStats();
+            
+            alert('✅ Kit created successfully!');
+        }
+
+        function deleteKit(kitId) {
+            const kit = kits.find(k => k.id === kitId);
+            if (!kit) return;
+
+            if (!confirm(`Delete kit "${kit.name}"? This cannot be undone.`)) return;
+
+            console.log('🗑️ Deleting kit:', kit.name);
+            
+            kits = kits.filter(k => k.id !== kitId);
+            localStorage.setItem('poolPartsKits', JSON.stringify(kits));
+            renderKits();
+            updateStats();
+            
+            alert('✅ Kit deleted successfully!');
         }
 
         function copyCode() {
             const code = document.getElementById('codeBlock').textContent;
+            
             navigator.clipboard.writeText(code).then(() => {
+                console.log('📋 Code copied to clipboard');
+                alert('📋 Code copied to clipboard!');
+            }).catch(err => {
+                console.error('❌ Failed to copy code:', err);
+                
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = code;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
                 alert('📋 Code copied to clipboard!');
             });
         }
 
-        // Initialize kits
-        const savedKits = localStorage.getItem('poolPartsKits');
-        if (savedKits) {
-            kits = JSON.parse(savedKits);
-        }
+        // Auto-save URL when typing
+        document.getElementById('apiUrl').addEventListener('input', function() {
+            clearTimeout(this.saveTimeout);
+            this.saveTimeout = setTimeout(() => {
+                const url = this.value.trim();
+                if (url && url.includes('script.google.com')) {
+                    localStorage.setItem('googleApiUrl', url);
+                    console.log('💾 URL auto-saved');
+                }
+            }, 1000);
+        });
 
-        console.log('Script loaded successfully');
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'n':
+                        e.preventDefault();
+                        if (isConnected) showAddForm();
+                        break;
+                    case 'r':
+                        e.preventDefault();
+                        if (isConnected) loadParts();
+                        break;
+                }
+            }
+            
+            if (e.key === 'Escape') {
+                hideAddForm();
+                hideKitsPanel();
+            }
+        });
+
+        console.log('🎉 Pool Parts Inventory System loaded successfully!');
     </script>
 </body>
 </html>
