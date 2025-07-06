@@ -607,13 +607,11 @@ function deletePart(data) {
             console.log('📦 Adjusting stock for ID:', id, 'change:', change);
             
             try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'updateStock', id: id, change: change })
-                });
-                
+                // Use GET request to avoid CORS issues
+                const url = `${apiUrl}?action=updateStock&id=${id}&change=${change}`;
+                const response = await fetch(url);
                 const data = await response.json();
+                
                 if (data.success) {
                     console.log('✅ Stock updated successfully');
                     await loadParts();
@@ -635,13 +633,11 @@ function deletePart(data) {
             console.log('🗑️ Deleting part:', part.name);
             
             try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'deletePart', id: id })
-                });
-                
+                // Use GET request to avoid CORS issues
+                const url = `${apiUrl}?action=deletePart&id=${id}`;
+                const response = await fetch(url);
                 const data = await response.json();
+                
                 if (data.success) {
                     console.log('✅ Part deleted successfully');
                     await loadParts();
@@ -681,23 +677,21 @@ function deletePart(data) {
 
             console.log('➕ Adding new part:', name);
 
-            const newPart = {
-                action: 'addPart',
-                name: name,
-                currentStock: parseInt(document.getElementById('partStock').value) || 0,
-                minStock: parseInt(document.getElementById('partMinStock').value) || 0,
-                price: parseFloat(document.getElementById('partPrice').value) || 0,
-                supplier: document.getElementById('partSupplier').value.trim()
-            };
-
             try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newPart)
+                // Use GET request to avoid CORS issues
+                const params = new URLSearchParams({
+                    action: 'addPart',
+                    name: name,
+                    currentStock: parseInt(document.getElementById('partStock').value) || 0,
+                    minStock: parseInt(document.getElementById('partMinStock').value) || 0,
+                    price: parseFloat(document.getElementById('partPrice').value) || 0,
+                    supplier: document.getElementById('partSupplier').value.trim()
                 });
                 
+                const url = `${apiUrl}?${params.toString()}`;
+                const response = await fetch(url);
                 const data = await response.json();
+                
                 if (data.success) {
                     console.log('✅ Part added successfully');
                     hideAddForm();
